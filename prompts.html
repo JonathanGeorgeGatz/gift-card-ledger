@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Gift Card Ledger — the prompts</title>
+<style>body{font-family:ui-monospace,Menlo,Consolas,monospace;background:#F8F5F0;color:#26242A;max-width:900px;margin:0 auto;padding:30px 20px;font-size:14px;line-height:1.5}
+h1{font-family:system-ui,sans-serif;color:#8E2D44;font-size:22px}pre{white-space:pre-wrap;background:#fff;border:1px solid #E0D8CC;border-radius:10px;padding:18px}
+a{color:#8E2D44}</style></head>
+<body><h1>The Gift Card Ledger — the three prompts</h1>
+<p><a href="index.html">&larr; back to the tool</a></p>
+<pre>THE GIFT CARD LEDGER — the three prompts, exactly as typed on camera
+=====================================================================
+
+PROMPT 1 (the innocent one — produces wrong build v1, shipped as v1_engine.js)
+------------------------------------------------------------------------------
+Here is the export from my gift card program (giftcards.csv:
+date,card_id,event,amount — the events are issue, reload, redeem). Build me a
+single-file web page I can paste it into. Tell me how much money is still
+sitting on open cards, and which cards have gone quiet.
+
+PROMPT 2 (the frame — produces wrong build v2, shipped as v2_engine.js)
+------------------------------------------------------------------------------
+Rebuild it under these rules, exactly:
+- Money is integer cents end to end; never floats. Round half up wherever
+  division happens, and round each displayed figure ONCE, from cents.
+- The amount is always positive; the EVENT carries the direction. A signed
+  amount is refused, never interpreted.
+- Replay each card&#x27;s events in date order, ties broken by original row order.
+- A card whose history is impossible is FLAGGED by id and excluded from every
+  total: a card whose first event is a redemption, and a card that at any
+  point gives out more than it holds. Flags are read aloud.
+- The page owns no clock. &quot;Now&quot; is the latest date in the file, and a card&#x27;s
+  age is measured from its LAST visit, not its first sale.
+- Dormant = an open card quiet for the dormancy window (months of 30 days).
+- The holiday wave: over cards first sold in a November or December, how much
+  of that value came back within the window dial&#x27;s days OF THAT CARD&#x27;S SALE.
+- Any row the page cannot read is REFUSED out loud with its row number and
+  reason. Never guess.
+- Dials, all adjustable: dormancy months, wave window days, crumb line.
+
+PROMPT 3 (the lawyer pass — produces the shipped page)
+------------------------------------------------------------------------------
+Harden it like it will be audited:
+- Derive the calendar from first principles (leap years included); an
+  impossible date is refused by name, never rolled forward.
+- Before rendering anything, cross-examine yourself: assemble the liability
+  two independent ways and reconcile to the cent; re-add the aging buckets
+  against the headline; re-derive every card&#x27;s balance from its event totals;
+  re-add the dormant and crumb figures and bound them by the liability; cap
+  refused rows and flagged cards at a tenth each.
+- If any audit fails, or either share passes 10%, render nothing but one
+  line: DO NOT BOOK THIS NUMBER.
+- No network calls, no clock: &quot;today&quot; is whatever the file says.
+- Keep the dials labeled as judgments, and show the refusals, the flags and
+  the audits on the page where the user can read them.
+</pre></body></html>

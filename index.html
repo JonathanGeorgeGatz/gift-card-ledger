@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Gift Card Ledger</title>
+<style>
+  :root{--ink:#8E2D44;--slate:#3E5569;--bg:#F8F5F0;--card:#FFFFFF;--line:#E0D8CC;--text:#26242A;
+        --ok:#3E7C4F;--warn:#A8742C;--bad:#9A2E24;--mut:#6E6A62;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.45;}
+  header{background:var(--ink);color:#fff;padding:26px 28px 22px;}
+  header h1{font-size:26px;letter-spacing:.3px;}
+  header p{opacity:.88;margin-top:6px;max-width:880px;font-size:14.5px;}
+  main{max-width:1060px;margin:0 auto;padding:22px 20px 60px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;}
+  .card h2{font-size:15px;color:var(--ink);margin-bottom:8px;}
+  textarea{width:100%;height:170px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;
+           border:1px solid var(--line);border-radius:8px;padding:10px;background:#FCFAF6;resize:vertical;}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px;}
+  button{background:var(--ink);color:#fff;border:0;border-radius:8px;padding:10px 18px;font-size:14px;cursor:pointer;}
+  button.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--ink);}
+  button:hover{filter:brightness(1.12);}
+  input[type=file]{font-size:12px;max-width:240px;}
+  .dials{display:grid;grid-template-columns:repeat(3,minmax(140px,1fr));gap:12px;margin-top:14px;}
+  @media(max-width:700px){.dials{grid-template-columns:1fr;}}
+  .dial label{display:block;font-size:12px;color:#555;margin-bottom:4px;}
+  .dial input{width:100%;border:1px solid var(--line);border-radius:7px;padding:8px;font-size:14px;}
+  #banner{display:none;background:#581216;color:#fff;font-size:22px;font-weight:700;letter-spacing:.5px;
+          padding:22px;border-radius:10px;margin:18px 0;text-align:center;}
+  #results{display:none;}
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0;}
+  @media(max-width:860px){.tiles{grid-template-columns:repeat(2,1fr);}}
+  .tile{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--slate);border-radius:10px;padding:14px;}
+  .tile .n{font-size:24px;font-weight:700;color:var(--ink);}
+  .tile .l{font-size:12px;color:#666;margin-top:3px;}
+  table{border-collapse:collapse;width:100%;font-size:13px;}
+  th,td{border:1px solid var(--line);padding:6px 8px;text-align:right;}
+  th{background:#EFE9DF;color:#444;font-weight:600;}
+  td.name,th.name{text-align:left;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:860px){.grid2{grid-template-columns:1fr;}}
+  .section{margin-top:22px;}
+  .bars td{padding:4px 8px;}
+  .bar{height:14px;background:var(--slate);border-radius:3px;min-width:2px;display:inline-block;vertical-align:middle;}
+  ul.refusals{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;list-style:none;}
+  ul.refusals li{padding:3px 0;border-bottom:1px dashed var(--line);}
+  ul.audits{list-style:none;font-size:13.5px;}
+  ul.audits li{padding:4px 0;}
+  ul.audits li::before{content:"\2713\0020";color:var(--ok);font-weight:700;}
+  ul.audits li.fail::before{content:"\2717\0020";color:var(--bad);}
+  footer{max-width:1060px;margin:0 auto;padding:18px 20px 40px;font-size:12.5px;color:#777;}
+  .muted{color:#777;font-size:12.5px;margin-top:8px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>The Gift Card Ledger</h1>
+  <p>Paste the one file your gift card program already exports &mdash; every issue, reload and
+     redemption &mdash; and it tells you what you still owe: the outstanding balance, how old each
+     open card is, which ones have gone quiet, and how much of your holiday card money actually
+     comes back. Everything is computed from the file; the page has no clock and sends nothing anywhere.</p>
+</header>
+<main>
+  <div class="card">
+    <h2>1 &mdash; Gift card activity (giftcards.csv)</h2>
+    <textarea id="box" spellcheck="false" placeholder="date,card_id,event,amount&#10;2026-11-02,HH-612,issue,100.00&#10;2026-11-09,HH-612,redeem,40.00"></textarea>
+    <div class="row"><input type="file" id="file" accept=".csv,text/csv"><button class="ghost" id="loadSample">Load the sample spa</button></div>
+  </div>
+
+  <div class="card" style="margin-top:16px;">
+    <h2>2 &mdash; The dials (judgments, not facts &mdash; the page treats them that way)</h2>
+    <div class="dials">
+      <div class="dial"><label for="dDorm">Dormant after (months of 30 days)</label><input id="dDorm" type="number" value="12" min="1" max="48" step="1"></div>
+      <div class="dial"><label for="dWave">Holiday wave window (days)</label><input id="dWave" type="number" value="60" min="14" max="365" step="1"></div>
+      <div class="dial"><label for="dCrumb">Crumb line (dollars)</label><input id="dCrumb" type="number" value="1.00" min="0" max="25" step="0.25"></div>
+    </div>
+    <div class="row"><button id="runBtn">Open the ledger</button><span class="muted" id="status"></span></div>
+  </div>
+
+  <div id="banner">DO NOT BOOK THIS NUMBER</div>
+  <div id="bannerWhy" class="muted" style="display:none;"></div>
+
+  <div id="results">
+    <div class="tiles">
+      <div class="tile"><div class="n" id="tLiab">&ndash;</div><div class="l" id="tLiabL">outstanding on open cards</div></div>
+      <div class="tile"><div class="n" id="tDorm">&ndash;</div><div class="l" id="tDormL">dormant cards / value</div></div>
+      <div class="tile"><div class="n" id="tOld">&ndash;</div><div class="l" id="tOldL">quietest open card</div></div>
+      <div class="tile"><div class="n" id="tDec">&ndash;</div><div class="l">of all card value ever sold was sold in a December</div></div>
+    </div>
+
+    <div class="grid2 section">
+      <div class="card">
+        <h2>How old the money you owe is</h2>
+        <table id="agingTable" class="bars"><thead><tr><th class="name">Since the card's last visit</th><th>Cards</th><th>Balance</th><th class="name" style="width:40%"></th></tr></thead><tbody></tbody></table>
+        <p class="muted" id="crumbNote"></p>
+      </div>
+      <div class="card">
+        <h2>The holiday wave</h2>
+        <table id="waveTable"><tbody></tbody></table>
+        <p class="muted" id="waveNote"></p>
+      </div>
+    </div>
+
+    <div class="card section">
+      <h2>Dormant cards &mdash; balances nobody has touched</h2>
+      <table id="dormTable"><thead><tr><th class="name">Card</th><th>Balance</th><th>Days since last visit</th></tr></thead><tbody></tbody></table>
+      <p class="muted" id="dormNote"></p>
+    </div>
+
+    <div class="card section">
+      <h2>Sold vs redeemed, last thirteen months</h2>
+      <table id="monthTable"><thead><tr><th class="name">Month</th><th>Sold</th><th>Redeemed</th></tr></thead><tbody></tbody></table>
+    </div>
+
+    <div class="grid2 section">
+      <div class="card"><h2>Rows refused and cards flagged, aloud</h2><ul class="refusals" id="refList"></ul><p class="muted" id="refShares"></p></div>
+      <div class="card"><h2>The page cross-examines itself</h2><ul class="audits" id="auditList"></ul></div>
+    </div>
+  </div>
+</main>
+<footer>
+  Hollyhock Day Spa is a fictional sample business; every card in it is invented.
+  The Gift Card Ledger &mdash; from the Build It With AI series. The page runs entirely in your browser.
+</footer>
+
+<script>// The Gift Card Ledger — engine v1.0 (EP35). Integer cents / integer days throughout.
+// Spec: RULES.md. Exposed as GCL.run(text, dials).
+(function (root) {
+  const divHU = (num, den) => num >= 0 ? Math.floor((2 * num + den) / (2 * den)) : -Math.floor((2 * (-num) + den) / (2 * den));
+
+  const MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  function validDate(s) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s); if (!m) return null;
+    const y = +m[1], mo = +m[2], d = +m[3];
+    if (mo < 1 || mo > 12 || d < 1) return null;
+    let dim = MONTH_DAYS[mo - 1];
+    if (mo === 2 && ((y % 4 === 0 && y % 100 !== 0) || y % 400 === 0)) dim = 29;
+    if (d > dim) return null;
+    return { y, mo, d };
+  }
+  function epochDay(y, mo, d) { // days since 1970-01-01, civil, integer math
+    y -= mo <= 2 ? 1 : 0;
+    const era = Math.floor((y >= 0 ? y : y - 399) / 400);
+    const yoe = y - era * 400;
+    const doy = Math.floor((153 * (mo + (mo > 2 ? -3 : 9)) + 2) / 5) + d - 1;
+    const doe = yoe * 365 + Math.floor(yoe / 4) - Math.floor(yoe / 100) + doy;
+    return era * 146097 + doe - 719468;
+  }
+  function parseAmount(s) { // positive dollars only; the event carries direction
+    const m = /^(\d+)(?:\.(\d{1,2}))?$/.exec(String(s).trim()); if (!m) return null;
+    const cents = +m[1] * 100 + (m[2] ? +((m[2] + "0").slice(0, 2)) : 0);
+    return cents > 0 ? cents : null;
+  }
+  const CARD_RE = /^[A-Za-z0-9-]{1,24}$/;
+  function splitCSV(text) {
+    const lines = String(text).replace(/\r/g, "").split("\n");
+    while (lines.length && lines[lines.length - 1] === "") lines.pop();
+    return lines.map(l => l.split(","));
+  }
+
+  function run(text, dials) {
+    const dormantDays = ((dials && dials.dormantMonths != null) ? dials.dormantMonths : 12) * 30;
+    const waveDays = (dials && dials.waveDays != null) ? dials.waveDays : 60;
+    const crumbCents = Math.round(((dials && dials.crumbDollars != null) ? dials.crumbDollars : 1.00) * 100);
+
+    const refusals = [];
+    const rows = splitCSV(text); rows.shift();
+    const total = rows.length;
+    const events = [];
+    rows.forEach((f, i) => {
+      const row = i + 2;
+      if (f.length !== 4) { refusals.push({ row, reason: "expected 4 fields" }); return; }
+      const dt = validDate(f[0].trim());
+      if (!dt) { refusals.push({ row, reason: "not a real date: " + f[0].trim() }); return; }
+      const card = f[1].trim();
+      if (!CARD_RE.test(card)) { refusals.push({ row, reason: "bad card_id: " + (card === "" ? "(empty)" : card) }); return; }
+      const ev = f[2].trim();
+      if (ev !== "issue" && ev !== "reload" && ev !== "redeem") { refusals.push({ row, reason: "unknown event: " + ev }); return; }
+      const cents = parseAmount(f[3]);
+      if (cents === null) { refusals.push({ row, reason: "unreadable amount: " + f[3].trim() + " (direction comes from the event, never a sign)" }); return; }
+      events.push({ row, ed: epochDay(dt.y, dt.mo, dt.d), y: dt.y, mo: dt.mo, card, ev, cents, date: f[0].trim() });
+    });
+    refusals.sort((a, b) => a.row - b.row);
+
+    // "now" = latest accepted date
+    let nowEd = null;
+    for (const e of events) if (nowEd === null || e.ed > nowEd) nowEd = e.ed;
+
+    // per-card replay in (date, row) order
+    const byCard = new Map();
+    for (const e of events) { if (!byCard.has(e.card)) byCard.set(e.card, []); byCard.get(e.card).push(e); }
+    const flags = [];
+    const cards = [];
+    for (const [id, list] of byCard.entries()) {
+      list.sort((a, b) => a.ed - b.ed || a.row - b.row);
+      let flag = null;
+      if (list[0].ev === "redeem") flag = "opens-with-redeem";
+      let bal = 0, adds = 0, subs = 0, lastEd = -Infinity, firstIssueE = null, firstRedeemEd = null;
+      for (const e of list) {
+        if (e.ev === "redeem") { bal -= e.cents; subs += e.cents; if (firstRedeemEd === null) firstRedeemEd = e.ed; }
+        else { bal += e.cents; adds += e.cents; if (e.ev === "issue" && firstIssueE === null) firstIssueE = e; }
+        if (!flag && bal < 0) flag = "overdrawn";
+        if (e.ed > lastEd) lastEd = e.ed;
+      }
+      if (flag) { flags.push({ card: id, reason: flag }); continue; }
+      cards.push({ id, list, bal, adds, subs, lastEd, firstIssueE, firstRedeemEd });
+    }
+    flags.sort((a, b) => a.card < b.card ? -1 : 1);
+    const cardTotal = byCard.size;
+
+    const untrusted =
+      (total > 0 && refusals.length * 10 > total) ||
+      (cardTotal > 0 && flags.length * 10 > cardTotal);
+    const sharePct = (n, t) => t ? divHU(n * 1000, t) / 10 : 0;
+
+    // open cards + liability
+    const open = cards.filter(c => c.bal > 0);
+    const liabilityCents = open.reduce((a, c) => a + c.bal, 0);
+    // audit 1 counterpart: re-walk the RAW accepted event stream for clean cards
+    const cleanIds = new Set(cards.map(c => c.id));
+    let rawAdds = 0, rawSubs = 0;
+    for (const e of events) { if (!cleanIds.has(e.card)) continue;
+      if (e.ev === "redeem") rawSubs += e.cents; else rawAdds += e.cents; }
+    const liabilityByTypes = rawAdds - rawSubs; // closed cards net to zero, so this is the open total
+
+    // aging
+    const EDGES = [90, 180, 360, 720];
+    const aging = [0, 0, 0, 0, 0];           // cents per bucket
+    const agingN = [0, 0, 0, 0, 0];
+    for (const c of open) {
+      const age = nowEd - c.lastEd;
+      let b = EDGES.findIndex(e => age <= e); if (b === -1) b = 4;
+      aging[b] += c.bal; agingN[b]++;
+    }
+
+    // dormant + crumbs
+    const dorm = open.filter(c => nowEd - c.lastEd >= dormantDays);
+    const dormantCents = dorm.reduce((a, c) => a + c.bal, 0);
+    const crumbs = open.filter(c => c.bal <= crumbCents);
+    const crumbCentsTotal = crumbs.reduce((a, c) => a + c.bal, 0);
+    const dormList = dorm.filter(c => c.bal > crumbCents)
+      .sort((a, b) => b.bal - a.bal || (a.id < b.id ? -1 : 1))
+      .map(c => ({ card: c.id, bal: c.bal, ageDays: nowEd - c.lastEd }));
+
+    // holiday wave
+    let holidayValue = 0, redeemedInWave = 0, holidayCards = 0;
+    for (const c of cards) {
+      const fi = c.firstIssueE;
+      if (!fi || (fi.mo !== 11 && fi.mo !== 12)) continue;
+      holidayCards++;
+      holidayValue += fi.cents;
+      let got = 0;
+      for (const e of c.list) if (e.ev === "redeem" && e.ed <= fi.ed + waveDays) got += e.cents;
+      redeemedInWave += Math.min(fi.cents, got);
+    }
+    const wavePct10 = holidayValue > 0 ? divHU(redeemedInWave * 1000, holidayValue) : null;
+
+    // median days to first redemption
+    const ds = cards.filter(c => c.firstRedeemEd !== null && c.firstIssueE)
+      .map(c => c.firstRedeemEd - c.firstIssueE.ed).sort((a, b) => a - b);
+    let medianDays = null;
+    if (ds.length) medianDays = ds.length % 2 ? ds[(ds.length - 1) / 2]
+      : divHU(ds[ds.length / 2 - 1] + ds[ds.length / 2], 2);
+
+    // monthly table (last 13 calendar months ending at now's month), clean cards only
+    const monthly = [];
+    if (nowEd !== null) {
+      // find now's y/mo from any event carrying nowEd
+      let ny = 0, nm = 0;
+      for (const e of events) if (e.ed === nowEd) { ny = e.y; nm = e.mo; break; }
+      const keys = [];
+      let y = ny, mo = nm;
+      for (let k = 0; k < 13; k++) { keys.unshift(y * 100 + mo); mo--; if (mo === 0) { mo = 12; y--; } }
+      const agg = new Map(keys.map(k => [k, { issued: 0, redeemed: 0 }]));
+      for (const c of cards) for (const e of c.list) {
+        const k = e.y * 100 + e.mo; if (!agg.has(k)) continue;
+        if (e.ev === "redeem") agg.get(k).redeemed += e.cents; else agg.get(k).issued += e.cents;
+      }
+      for (const k of keys) monthly.push({ ym: k, issued: agg.get(k).issued, redeemed: agg.get(k).redeemed });
+    }
+
+    // December share (all history, clean cards, issue+reload = "sold value"? spec: issued value)
+    let decIssued = 0, allIssued = 0;
+    for (const c of cards) for (const e of c.list) if (e.ev !== "redeem") {
+      allIssued += e.cents; if (e.mo === 12) decIssued += e.cents;
+    }
+    const decShare10 = allIssued > 0 ? divHU(decIssued * 1000, allIssued) : null;
+
+    // oldest open balance
+    let oldest = null;
+    for (const c of open) if (c.bal > crumbCents && (!oldest || c.lastEd < oldest.lastEd)) oldest = c;
+
+    // audits
+    const agingSum = aging.reduce((a, b) => a + b, 0);
+    const reBal = cards.every(c => {
+      let adds = 0, subs = 0;
+      for (const e of c.list) { if (e.ev === "redeem") subs += e.cents; else adds += e.cents; }
+      return adds - subs === c.bal;
+    });
+    const audits = [
+      { name: "liability assembled two ways agrees to the cent", pass: liabilityCents === liabilityByTypes },
+      { name: "aging buckets re-add to the liability exactly", pass: agingSum === liabilityCents },
+      { name: "every card's balance re-derived from totals", pass: reBal },
+      { name: "dormant and crumb values re-added and bounded", pass: dormantCents === dorm.reduce((a, c) => a + c.bal, 0) && dormantCents <= liabilityCents && crumbCentsTotal <= liabilityCents },
+      { name: "refusal and flagged shares within 10%", pass: !untrusted }
+    ];
+    const allPass = audits.every(a => a.pass);
+
+    return {
+      untrusted: untrusted || !allPass,
+      refusals,
+      flags,
+      shares: { rows: sharePct(refusals.length, total), cards: sharePct(flags.length, cardTotal) },
+      totals: {
+        liabilityCents, openCards: open.length, cleanCards: cards.length,
+        dormantCents, dormantCards: dorm.length,
+        crumbCents: crumbCentsTotal, crumbCards: crumbs.length,
+        holidayValue, redeemedInWave, holidayCards,
+        decIssued, allIssued
+      },
+      aging: aging.map((c, i) => ({ bucket: i, cents: c, cards: agingN[i] })),
+      dormList,
+      wavePct10, medianDays, decShare10,
+      oldest: oldest ? { card: oldest.id, bal: oldest.bal, ageDays: nowEd - oldest.lastEd } : null,
+      monthly,
+      audits,
+      nowEd,
+      rowCounts: { rows: total, cards: cardTotal },
+      dials: { dormantMonths: dormantDays / 30, waveDays, crumbDollars: crumbCents / 100 }
+    };
+  }
+
+  root.GCL = { run, _internals: { validDate, epochDay, parseAmount, divHU } };
+})(typeof window !== "undefined" ? window : globalThis);
+</script>
+<script>
+const SAMPLE = "date,card_id,event,amount\n2024-06-03,HH-101,issue,50.00\n2024-06-06,HH-104,issue,200.00\n2024-06-07,HH-105,issue,50.00\n2024-06-09,HH-102,issue,100.00\n2024-06-19,HH-103,issue,100.00\n2024-06-24,HH-101,redeem,50.00\n2024-07-17,HH-106,issue,100.00\n2024-07-18,HH-108,issue,75.00\n2024-07-25,HH-107,issue,100.00\n2024-08-04,HH-110,issue,50.00\n2024-08-06,HH-105,redeem,50.00\n2024-08-06,HH-109,issue,50.00\n2024-08-13,HH-102,redeem,100.00\n2024-08-19,HH-111,issue,50.00\n2024-08-27,HH-112,issue,25.00\n2024-09-02,HH-115,issue,150.00\n2024-09-04,HH-104,redeem,25.00\n2024-09-06,HH-113,issue,100.00\n2024-09-08,HH-116,issue,200.00\n2024-09-09,HH-117,issue,50.00\n2024-09-13,HH-111,redeem,50.00\n2024-09-16,HH-113,redeem,60.00\n2024-09-19,HH-112,redeem,25.00\n2024-09-19,HH-114,issue,200.00\n2024-10-04,HH-109,redeem,30.00\n2024-10-06,HH-120,issue,100.00\n2024-10-07,HH-118,issue,100.00\n2024-10-12,HH-119,issue,150.00\n2024-10-13,HH-110,redeem,30.00\n2024-10-28,HH-113,redeem,40.00\n2024-11-01,HH-123,issue,200.00\n2024-11-02,HH-122,issue,200.00\n2024-11-02,HH-127,issue,50.00\n2024-11-05,HH-118,redeem,60.00\n2024-11-07,HH-126,issue,50.00\n2024-11-08,HH-110,redeem,20.00\n2024-11-13,HH-115,redeem,90.00\n2024-11-13,HH-124,issue,150.00\n2024-11-17,HH-116,redeem,200.00\n2024-11-23,HH-125,issue,100.00\n2024-11-26,HH-109,redeem,20.00\n2024-11-27,HH-124,redeem,90.00\n2024-11-30,HH-121,issue,50.00\n2024-12-01,HH-123,redeem,120.00\n2024-12-06,HH-119,redeem,150.00\n2024-12-09,HH-137,issue,200.00\n2024-12-09,HH-143,issue,100.00\n2024-12-10,HH-144,issue,150.00\n2024-12-11,HH-136,issue,150.00\n2024-12-11,HH-139,issue,150.00\n2024-12-11,HH-142,issue,50.00\n2024-12-12,HH-129,issue,150.00\n2024-12-12,HH-138,issue,150.00\n2024-12-14,HH-141,issue,100.00\n2024-12-15,HH-145,issue,150.00\n2024-12-16,HH-118,redeem,40.00\n2024-12-16,HH-125,redeem,100.00\n2024-12-16,HH-128,issue,50.00\n2024-12-18,HH-132,issue,100.00\n2024-12-18,HH-133,issue,200.00\n2024-12-18,HH-146,issue,150.00\n2024-12-18,HH-151,issue,150.00\n2024-12-19,HH-130,issue,50.00\n2024-12-19,HH-147,issue,50.00\n2024-12-19,HH-149,issue,200.00\n2024-12-19,HH-150,issue,100.00\n2024-12-20,HH-152,issue,150.00\n2024-12-21,HH-7312,issue,150.00\n2024-12-22,HH-134,issue,200.00\n2024-12-22,HH-148,issue,150.00\n2024-12-23,HH-115,redeem,60.00\n2024-12-23,HH-153,issue,200.00\n2024-12-24,HH-131,issue,150.00\n2024-12-24,HH-135,issue,200.00\n2024-12-24,HH-140,issue,50.00\n2024-12-25,HH-121,redeem,30.00\n2024-12-26,HH-124,redeem,60.00\n2024-12-27,HH-138,redeem,150.00\n2025-01-01,HH-154,issue,25.00\n2025-01-01,HH-157,issue,75.00\n2025-01-05,HH-155,issue,50.00\n2025-01-06,HH-127,redeem,30.00\n2025-01-06,HH-152,redeem,90.00\n2025-01-07,HH-135,redeem,200.00\n2025-01-08,HH-122,redeem,120.00\n2025-01-11,HH-151,redeem,90.00\n2025-01-12,HH-123,redeem,80.00\n2025-01-15,HH-141,redeem,60.00\n2025-01-16,HH-156,issue,200.00\n2025-01-19,HH-140,redeem,40.00\n2025-01-21,HH-127,redeem,20.00\n2025-01-22,HH-152,redeem,60.00\n2025-01-24,HH-148,redeem,90.00\n2025-01-26,HH-121,redeem,20.00\n2025-01-26,HH-137,redeem,200.00\n2025-01-27,HH-157,redeem,75.00\n2025-01-28,HH-154,redeem,15.00\n2025-02-02,HH-159,issue,50.00\n2025-02-03,HH-126,redeem,40.00\n2025-02-04,HH-122,redeem,80.00\n2025-02-04,HH-143,redeem,40.00\n2025-02-04,HH-151,redeem,60.00\n2025-02-06,HH-158,issue,50.00\n2025-02-07,HH-129,redeem,40.00\n2025-02-10,HH-162,issue,50.00\n2025-02-13,HH-134,redeem,25.00\n2025-02-14,HH-144,redeem,90.00\n2025-02-14,HH-148,redeem,60.00\n2025-02-26,HH-160,issue,75.00\n2025-02-28,HH-141,redeem,40.00\n2025-02-28,HH-144,redeem,60.00\n2025-02-28,HH-161,issue,75.00\n2025-02-29,HH-281,issue,50.00\n2025-03-04,HH-147,redeem,50.00\n2025-03-06,HH-130,redeem,50.00\n2025-03-09,HH-154,redeem,10.00\n2025-03-09,HH-2208,issue,100.00\n2025-03-11,HH-156,redeem,200.00\n2025-03-12,HH-132,redeem,40.00\n2025-03-13,HH-165,issue,100.00\n2025-03-17,HH-164,issue,200.00\n2025-03-17,HH-166,issue,75.00\n2025-03-23,HH-159,redeem,50.00\n2025-03-27,HH-164,redeem,200.00\n2025-03-29,HH-163,issue,100.00\n2025-04-02,HH-169,issue,75.00\n2025-04-02,HH-2208,redeem,90.00\n2025-04-04,HH-155,redeem,40.00\n2025-04-07,HH-166,redeem,45.00\n2025-04-09,HH-117,redeem,50.00\n2025-04-15,HH-168,issue,75.00\n2025-04-17,HH-160,redeem,45.00\n2025-04-20,HH-167,issue,100.00\n2025-04-27,HH-158,redeem,20.00\n2025-04-28,HH-161,redeem,45.00\n2025-05-03,HH-103,redeem,75.00\n2025-05-03,HH-171,issue,100.00\n2025-05-05,HH-174,issue,100.00\n2025-05-08,HH-175,issue,50.00\n2025-05-20,HH-172,issue,100.00\n2025-05-20,HH-9044,issue,50.00\n2025-05-24,HH-173,issue,150.00\n2025-05-28,HH-166,redeem,30.00\n2025-05-29,HH-170,issue,25.00\n2025-06-01,HH-178,issue,150.00\n2025-06-02,HH-177,issue,75.00\n2025-06-03,HH-160,redeem,30.00\n2025-06-06,HH-161,redeem,30.00\n2025-06-07,HH-169,redeem,45.00\n2025-06-10,HH-175,redeem,50.00\n2025-06-11,HH-167,redeem,60.00\n2025-06-11,HH-9044,redeem,30.00\n2025-06-16,HH-170,redeem,25.00\n2025-06-17,HH-176,issue,100.00\n2025-06-18,HH-172,redeem,100.00\n2025-06-20,HH-108,redeem,25.00\n2025-06-24,HH-179,issue,75.00\n2025-07-02,HH-107,redeem,50.00\n2025-07-02,HH-9044,redeem,35.00\n2025-07-03,HH-167,redeem,40.00\n2025-07-03,HH-169,redeem,30.00\n2025-07-03,HH-173,redeem,150.00\n2025-07-08,HH-168,redeem,25.00\n2025-07-17,HH-171,redeem,100.00\n2025-07-17,HH-182,issue,25.00\n2025-07-21,HH-183,issue,200.00\n2025-07-23,HH-145,redeem,50.00\n2025-07-23,HH-174,redeem,25.00\n2025-07-26,HH-180,issue,75.00\n2025-07-28,HH-181,issue,75.00\n2025-07-28,HH-184,issue,75.00\n2025-08-01,HH-187,issue,200.00\n2025-08-03,HH-3101,issue,50.00\n2025-08-04,HH-188,issue,100.00\n2025-08-07,HH-186,issue,200.00\n2025-08-11,HH-179,redeem,10.00\n2025-08-16,HH-189,issue,50.00\n2025-08-17,HH-182,redeem,25.00\n2025-08-19,HH-177,redeem,75.00\n2025-08-25,HH-176,redeem,60.00\n2025-08-29,HH-181,redeem,45.00\n2025-08-30,HH-185,issue,50.00\n2025-09-01,HH-120,redeem,25.00\n2025-09-01,HH-183,redeem,120.00\n2025-09-01,HH-187,redeem,120.00\n2025-09-01,HH-3101,redeem,49.63\n2025-09-02,HH-192,issue,200.00\n2025-09-06,HH-146,redeem,75.00\n2025-09-08,HH-190,issue,200.00\n2025-09-13,HH-191,issue,150.00\n2025-09-14,HH-9105,redeem,25.00\n2025-09-17,HH-176,redeem,40.00\n2025-09-17,HH-187,redeem,80.00\n2025-09-20,HH-106,redeem,25.00\n2025-09-28,HH-181,redeem,30.00\n2025-09-29,HH-189,redeem,30.00\n2025-10-03,HH-9105,issue,50.00\n2025-10-05,HH-193,issue,200.00\n2025-10-06,HH-195,issue,100.00\n2025-10-08,HH-114,redeem,25.00\n2025-10-12,HH-3102,issue,25.00\n2025-10-14,HH-183,redeem,80.00\n2025-10-16,HH-186,redeem,120.00\n2025-10-20,HH-189,redeem,20.00\n2025-10-24,HH-192,redeem,25.00\n2025-10-26,HH-194,issue,100.00\n2025-10-31,HH-195,redeem,100.00\n2025-11-02,HH-193,redeem,200.00\n2025-11-02,HH-3102,redeem,24.10\n2025-11-09,HH-153,redeem,50.00\n2025-11-11,HH-196,issue,50.00\n2025-11-12,HH-200,issue,50.00\n2025-11-14,HH-198,issue,100.00\n2025-11-15,HH-165,redeem,50.00\n2025-11-15,HH-186,redeem,80.00\n2025-11-16,HH-191,redeem,90.00\n2025-11-18,HH-202,issue,150.00\n2025-11-23,HH-201,issue,25.00\n2025-11-28,HH-197,issue,100.00\n2025-11-28,HH-199,issue,75.00\n2025-11-28,HH-2208,reload,50.00\n2025-12-08,HH-225,issue,50.00\n2025-12-09,HH-204,issue,200.00\n2025-12-09,HH-218,issue,150.00\n2025-12-09,HH-219,issue,100.00\n2025-12-10,HH-162,redeem,25.00\n2025-12-10,HH-220,issue,200.00\n2025-12-12,HH-216,issue,150.00\n2025-12-13,HH-217,issue,200.00\n2025-12-14,HH-3105,issue,50.00\n2025-12-15,HH-210,issue,150.00\n2025-12-15,HH-214,issue,100.00\n2025-12-15,HH-226,issue,100.00\n2025-12-16,HH-191,redeem,60.00\n2025-12-16,HH-205,issue,150.00\n2025-12-17,HH-208,issue,50.00\n2025-12-18,HH-222,issue,50.00\n2025-12-19,HH-203,issue,150.00\n2025-12-19,HH-402,sold,100.00\n2025-12-20,HH-213,issue,50.00\n2025-12-20,HH-221,issue,150.00\n2025-12-21,HH-209,issue,100.00\n2025-12-22,HH-163,redeem,50.00\n2025-12-23,HH-207,issue,100.00\n2025-12-23,HH-211,issue,200.00\n2025-12-23,HH-224,issue,50.00\n2025-12-24,HH-206,issue,200.00\n2025-12-24,HH-212,issue,100.00\n2025-12-24,HH-215,issue,50.00\n2025-12-24,HH-223,issue,150.00\n2025-12-25,HH-225,redeem,20.00\n2025-12-29,HH-194,redeem,100.00\n2026-01-03,HH-214,redeem,20.00\n2026-01-04,HH-224,redeem,30.00\n2026-01-05,HH-220,redeem,200.00\n2026-01-08,HH-212,redeem,100.00\n2026-01-09,HH-415,redeem,$25.00\n2026-01-10,HH-207,redeem,100.00\n2026-01-10,HH-230,issue,100.00\n2026-01-11,HH-196,redeem,50.00\n2026-01-13,HH-200,redeem,10.00\n2026-01-15,HH-228,issue,75.00\n2026-01-16,HH-208,redeem,50.00\n2026-01-16,HH-216,redeem,90.00\n2026-01-17,HH-2208,redeem,55.00\n2026-01-18,HH-203,redeem,40.00\n2026-01-18,HH-219,redeem,60.00\n2026-01-18,HH-224,redeem,20.00\n2026-01-18,HH-231,issue,50.00\n2026-01-19,HH-221,redeem,90.00\n2026-01-19,HH-3105,redeem,45.85\n2026-01-25,HH-202,redeem,90.00\n2026-01-26,HH-149,redeem,75.00\n2026-01-29,HH-229,issue,25.00\n2026-01-30,HH-226,redeem,60.00\n2026-01-30,HH-227,issue,50.00\n2026-02-01,HH-209,redeem,60.00\n2026-02-04,HH-211,redeem,120.00\n2026-02-04,HH-222,redeem,30.00\n2026-02-04,HH-236,issue,25.00\n2026-02-06,HH-197,redeem,60.00\n2026-02-06,HH-205,redeem,150.00\n2026-02-06,HH-3103,issue,100.00\n2026-02-08,HH-218,redeem,40.00\n2026-02-09,HH-204,redeem,40.00\n2026-02-15,HH-128,redeem,50.00\n2026-02-15,HH-219,redeem,40.00\n2026-02-15,HH-230,redeem,60.00\n2026-02-17,HH-233,issue,50.00\n2026-02-18,HH-226,redeem,40.00\n2026-02-20,HH-222,redeem,20.00\n2026-02-20,HH-232,issue,25.00\n2026-02-21,HH-7312,redeem,80.00\n2026-02-23,HH-202,redeem,60.00\n2026-02-26,HH-234,issue,100.00\n2026-02-27,HH-223,redeem,90.00\n2026-02-28,HH-235,issue,200.00\n2026-03-01,HH-197,redeem,40.00\n2026-03-01,HH-221,redeem,60.00\n2026-03-02,HH-216,redeem,60.00\n2026-03-03,HH-213,redeem,50.00\n2026-03-05,HH-215,redeem,50.00\n2026-03-08,HH-238,issue,50.00\n2026-03-08,HH-3103,redeem,99.25\n2026-03-11,HH-236,redeem,15.00\n2026-03-12,HH-239,issue,25.00\n2026-03-13,HH-237,issue,75.00\n2026-03-16,HH-230,redeem,40.00\n2026-03-18,HH-234,redeem,60.00\n2026-03-22,HH-223,redeem,60.00\n2026-03-23,HH-209,redeem,40.00\n2026-03-24,HH-211,redeem,80.00\n2026-03-28,HH-238,redeem,50.00\n2026-03-30,HH-235,redeem,120.00\n2026-03-30,HH-237,redeem,75.00\n2026-04-05,HH-229,redeem,15.00\n2026-04-06,HH-243,issue,200.00\n2026-04-07,HH-241,issue,75.00\n2026-04-08,HH-185,redeem,50.00\n2026-04-11,HH-240,issue,25.00\n2026-04-18,HH-235,redeem,80.00\n2026-04-19,HH-242,issue,100.00\n2026-04-19,HH-3104,issue,75.00\n2026-04-23,HH-239,redeem,25.00\n2026-04-30,HH-466,redeem,-40.00\n2026-05-03,HH-236,redeem,10.00\n2026-05-04,HH-229,redeem,10.00\n2026-05-05,HH-190,redeem,50.00\n2026-05-05,HH-232,redeem,25.00\n2026-05-05,HH-234,redeem,40.00\n2026-05-08,HH-180,redeem,75.00\n2026-05-09,HH-199,redeem,75.00\n2026-05-11,HH-249,issue,100.00\n2026-05-13,HH-247,issue,100.00\n2026-05-17,HH-244,issue,200.00\n2026-05-21,HH-248,issue,100.00\n2026-05-23,HH-3104,redeem,72.40\n2026-05-25,HH-246,issue,75.00\n2026-05-26,HH-240,redeem,20.00\n2026-05-27,HH-249,redeem,60.00\n2026-05-28,HH-245,issue,150.00\n2026-06-02,HH-247,redeem,100.00\n2026-06-05,HH-252,issue,200.00\n2026-06-07,HH-250,issue,25.00\n2026-06-07,HH-251,issue,50.00\n2026-06-09,HH-243,redeem,120.00\n2026-06-10,HH-249,redeem,40.00\n2026-06-11,HH-241,redeem,20.00\n2026-06-14,HH-5531,issue,75.00\n2026-06-14,HH-5531,redeem,75.00\n2026-06-22,HH-245,redeem,150.00\n2026-06-29,HH-253,issue,100.00\n2026-07-01,HH-244,redeem,120.00\n2026-07-13,HH-255,issue,50.00\n2026-07-14,,issue,75.00\n2026-07-21,HH-188,redeem,50.00\n2026-07-23,HH-256,issue,150.00\n2026-07-24,HH-248,redeem,100.00\n2026-07-26,HH-244,redeem,80.00\n2026-07-27,HH-243,redeem,80.00\n2026-07-30,HH-254,issue,75.00\n2026-08-05,HH-256,redeem,90.00\n2026-08-06,HH-252,redeem,200.00\n2026-08-10,HH-246,redeem,75.00\n2026-08-11,HH-261,issue,100.00\n2026-08-14,HH-253,redeem,100.00\n2026-08-19,HH-260,issue,100.00\n2026-08-21,HH-257,issue,100.00\n2026-08-22,HH-258,issue,100.00\n2026-08-26,HH-242,redeem,75.00\n2026-08-27,HH-259,issue,50.00\n2026-09-01,HH-256,redeem,60.00\n2026-09-01,HH-501,issue\n2026-09-02,HH-251,redeem,25.00\n2026-09-03,HH-261,redeem,100.00\n2026-09-04,HH-258,redeem,60.00\n2026-09-06,HH-262,issue,50.00\n2026-09-08,HH-259,redeem,50.00\n2026-09-10,HH-255,redeem,30.00\n2026-09-14,HH-264,issue,100.00\n2026-09-25,HH-263,issue,25.00\n2026-09-28,HH-265,issue,100.00\n2026-10-05,HH-255,redeem,20.00\n2026-10-10,HH-262,redeem,30.00\n2026-10-11,HH-266,issue,75.00\n2026-10-15,HH-268,issue,150.00\n2026-10-21,HH-258,redeem,40.00\n2026-10-24,HH-267,issue,100.00\n2026-10-29,HH-263,redeem,15.00\n2026-10-31,HH-260,redeem,10.00\n2026-11-01,HH-271,issue,25.00\n2026-11-01,HH-273,issue,100.00\n2026-11-05,HH-269,issue,200.00\n2026-11-07,HH-272,issue,75.00\n2026-11-13,HH-262,redeem,20.00\n2026-11-14,HH-274,issue,25.00\n2026-11-15,HH-270,issue,75.00\n";
+const $ = id => document.getElementById(id);
+const C = c => (c<0?"-$":"$") + Math.abs(c/100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,",");
+const MN = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+$("loadSample").onclick = () => { $("box").value = SAMPLE; $("status").textContent = "Sample spa loaded — two and a half fictional years of cards."; };
+$("file").addEventListener("change", e => {
+  const f = e.target.files[0]; if(!f) return;
+  const rd = new FileReader(); rd.onload = () => { $("box").value = rd.result; }; rd.readAsText(f);
+});
+
+$("runBtn").onclick = () => {
+  const dials = { dormantMonths:+$("dDorm").value, waveDays:+$("dWave").value, crumbDollars:+$("dCrumb").value };
+  const r = GCL.run($("box").value, dials);
+  window.__lastResult = r;
+  render(r, dials);
+};
+function render(r, dials){
+  const banner=$("banner"), why=$("bannerWhy"), res=$("results");
+  $("status").textContent = "";
+  if (r.untrusted){
+    banner.style.display="block"; res.style.display="none";
+    const bits=[];
+    if (r.shares.rows>10) bits.push("the file lost "+r.shares.rows+"% of its rows to refusals");
+    if (r.shares.cards>10) bits.push(r.shares.cards+"% of cards carry impossible histories");
+    const failed=(r.audits||[]).filter(a=>!a.pass).map(a=>a.name);
+    if (failed.length && r.shares.rows<=10 && r.shares.cards<=10) bits.push("failed self-audit: "+failed.join("; "));
+    why.textContent = "Why: " + (bits.join(" · ")||"internal audit failure") + ". Fix the file and run again — a liability built on refused rows is not a liability figure.";
+    why.style.display="block";
+    return;
+  }
+  banner.style.display="none"; why.style.display="none"; res.style.display="block";
+  $("tLiab").textContent = C(r.totals.liabilityCents);
+  $("tLiabL").textContent = "outstanding on "+r.totals.openCards+" open cards";
+  $("tDorm").textContent = r.totals.dormantCards + " / " + C(r.totals.dormantCents);
+  $("tDormL").textContent = "cards quiet for "+dials.dormantMonths+"+ months, and what they hold";
+  if (r.oldest){ $("tOld").textContent = r.oldest.card;
+    $("tOldL").textContent = C(r.oldest.bal)+" untouched for "+r.oldest.ageDays+" days"; }
+  else { $("tOld").textContent="none"; $("tOldL").textContent="no open cards above the crumb line"; }
+  $("tDec").textContent = r.decShare10===null ? "—" : (r.decShare10/10).toFixed(1)+"%";
+
+  const LBL=["0–90 days","91–180 days","181–360 days","361–720 days","over 720 days"];
+  const maxA=Math.max(1,...r.aging.map(a=>a.cents));
+  $("agingTable").querySelector("tbody").innerHTML = r.aging.map((a,i)=>
+    "<tr><td class=\"name\">"+LBL[i]+"</td><td>"+a.cards+"</td><td>"+C(a.cents)+"</td><td class=\"name\"><span class=\"bar\" style=\"width:"+Math.round(100*a.cents/maxA)+"%\"></span></td></tr>").join("");
+  $("crumbNote").textContent = "Inside the total: "+r.totals.crumbCards+" crumb card"+(r.totals.crumbCards===1?"":"s")+" at or under "+C(Math.round(dials.crumbDollars*100))+", holding "+C(r.totals.crumbCents)+" between them.";
+
+  $("waveTable").querySelector("tbody").innerHTML =
+    "<tr><td class=\"name\">Cards first sold in a November or December</td><td>"+r.totals.holidayCards+"</td></tr>"+
+    "<tr><td class=\"name\">Holiday value sold</td><td>"+C(r.totals.holidayValue)+"</td></tr>"+
+    "<tr><td class=\"name\">Redeemed within "+dials.waveDays+" days of sale</td><td>"+C(r.totals.redeemedInWave)+"</td></tr>"+
+    "<tr><td class=\"name\">Share back inside the window</td><td>"+(r.wavePct10===null?"—":(r.wavePct10/10).toFixed(1)+"%")+"</td></tr>";
+  $("waveNote").textContent = r.medianDays===null ? "" : "Across every redeemed card in the file, the median wait from sale to first visit is "+r.medianDays+" days.";
+
+  const SHOW=12;
+  const dl=r.dormList;
+  $("dormTable").querySelector("tbody").innerHTML = dl.slice(0,SHOW).map(d=>
+    "<tr><td class=\"name\">"+d.card+"</td><td>"+C(d.bal)+"</td><td>"+d.ageDays+"</td></tr>").join("")
+    || "<tr><td class=\"name\" colspan=\"3\">Nothing dormant at these dials.</td></tr>";
+  $("dormNote").textContent = dl.length>SHOW ? "Showing "+SHOW+" of "+dl.length+" dormant cards (largest balances first); crumb-line cards are counted in the tile, not listed." :
+    (dl.length? "All "+dl.length+" dormant cards shown (largest balances first); crumb-line cards are counted in the tile, not listed." : "");
+
+  $("monthTable").querySelector("tbody").innerHTML = r.monthly.map(m=>{
+    const y=Math.floor(m.ym/100), mo=m.ym%100;
+    return "<tr><td class=\"name\">"+MN[mo-1]+" "+y+"</td><td>"+C(m.issued)+"</td><td>"+C(m.redeemed)+"</td></tr>";
+  }).join("");
+
+  const refs=[...r.refusals.map(x=>"row "+x.row+" — "+x.reason), ...r.flags.map(f=>"card "+f.card+" — "+f.reason+" (excluded from every total)")];
+  $("refList").innerHTML = refs.map(x=>"<li>"+x+"</li>").join("") || "<li>Nothing refused — every row read clean.</li>";
+  $("refShares").textContent = "Refused: "+r.shares.rows+"% of rows; flagged: "+r.shares.cards+"% of cards (the page stops at 10% of either).";
+  $("auditList").innerHTML = r.audits.map(a=>"<li class=\""+(a.pass?"":"fail")+"\">"+a.name+"</li>").join("");
+}
+</script>
+</body>
+</html>
