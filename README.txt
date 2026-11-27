@@ -3,7 +3,7 @@ THE GIFT CARD LEDGER
 From the Build It With AI series (Jonathan Gatz). Episode giveaway — free to use.
 
 WHAT IT DOES
-Paste the one file your gift card program already exports — every issue,
+Drop in (or paste) the one file your gift card program already exports — every issue,
 reload and redemption — and it opens the ledger your books skip: the
 outstanding balance on open cards, how old each open balance is (aged from
 the card's LAST visit), which cards have gone dormant, how much of your
@@ -11,7 +11,9 @@ November–December card money actually comes back inside the wave window,
 and sold-vs-redeemed for the last thirteen months.
 
 FILES
-  index.html      the shipped page. Open it in any browser; nothing is uploaded.
+  index.html      the shipped page. Open it in any browser and press
+                  "Try the sample business", or drop in your own export;
+                  nothing is uploaded.
   sample/         Hollyhock Day Spa — a fictional two-and-a-half-year card
                   history, deliberately including an impossible date, an
                   unknown event, a signed amount, a dollar-sign amount, an

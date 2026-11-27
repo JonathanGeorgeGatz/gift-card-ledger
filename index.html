@@ -4,126 +4,335 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Gift Card Ledger</title>
+<meta name="description" content="Free, offline gift card liability ledger: one activity export in — what you still owe, how old it is, which cards went dormant, and how much holiday money comes back.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='3' y='3' width='58' height='58' rx='10' fill='%232b3138'/%3E%3Ccircle cx='32' cy='32' r='19' fill='none' stroke='%23d4ac55' stroke-width='5'/%3E%3Ccircle cx='32' cy='32' r='5' fill='%23d4ac55'/%3E%3Cpath d='M32 13v8M32 43v8M13 32h8M43 32h8' stroke='%23d4ac55' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
+<!-- IDENTITY: "Vault / Safe-deposit" — brushed steel, beveled panels, brass hardware, vault-door hero, deposit-box drawers. (11-27 identity rule) -->
 <style>
-  :root{--ink:#8E2D44;--slate:#3E5569;--bg:#F8F5F0;--card:#FFFFFF;--line:#E0D8CC;--text:#26242A;
-        --ok:#3E7C4F;--warn:#A8742C;--bad:#9A2E24;--mut:#6E6A62;}
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.45;}
-  header{background:var(--ink);color:#fff;padding:26px 28px 22px;}
-  header h1{font-size:26px;letter-spacing:.3px;}
-  header p{opacity:.88;margin-top:6px;max-width:880px;font-size:14.5px;}
-  main{max-width:1060px;margin:0 auto;padding:22px 20px 60px;}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;}
-  .card h2{font-size:15px;color:var(--ink);margin-bottom:8px;}
-  textarea{width:100%;height:170px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;
-           border:1px solid var(--line);border-radius:8px;padding:10px;background:#FCFAF6;resize:vertical;}
-  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px;}
-  button{background:var(--ink);color:#fff;border:0;border-radius:8px;padding:10px 18px;font-size:14px;cursor:pointer;}
-  button.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--ink);}
-  button:hover{filter:brightness(1.12);}
-  input[type=file]{font-size:12px;max-width:240px;}
-  .dials{display:grid;grid-template-columns:repeat(3,minmax(140px,1fr));gap:12px;margin-top:14px;}
-  @media(max-width:700px){.dials{grid-template-columns:1fr;}}
-  .dial label{display:block;font-size:12px;color:#555;margin-bottom:4px;}
-  .dial input{width:100%;border:1px solid var(--line);border-radius:7px;padding:8px;font-size:14px;}
-  #banner{display:none;background:#581216;color:#fff;font-size:22px;font-weight:700;letter-spacing:.5px;
-          padding:22px;border-radius:10px;margin:18px 0;text-align:center;}
-  #results{display:none;}
-  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0;}
-  @media(max-width:860px){.tiles{grid-template-columns:repeat(2,1fr);}}
-  .tile{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--slate);border-radius:10px;padding:14px;}
-  .tile .n{font-size:24px;font-weight:700;color:var(--ink);}
-  .tile .l{font-size:12px;color:#666;margin-top:3px;}
-  table{border-collapse:collapse;width:100%;font-size:13px;}
-  th,td{border:1px solid var(--line);padding:6px 8px;text-align:right;}
-  th{background:#EFE9DF;color:#444;font-weight:600;}
-  td.name,th.name{text-align:left;}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-  @media(max-width:860px){.grid2{grid-template-columns:1fr;}}
-  .section{margin-top:22px;}
-  .bars td{padding:4px 8px;}
-  .bar{height:14px;background:var(--slate);border-radius:3px;min-width:2px;display:inline-block;vertical-align:middle;}
-  ul.refusals{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;list-style:none;}
-  ul.refusals li{padding:3px 0;border-bottom:1px dashed var(--line);}
-  ul.audits{list-style:none;font-size:13.5px;}
-  ul.audits li{padding:4px 0;}
-  ul.audits li::before{content:"\2713\0020";color:var(--ok);font-weight:700;}
-  ul.audits li.fail::before{content:"\2717\0020";color:var(--bad);}
-  footer{max-width:1060px;margin:0 auto;padding:18px 20px 40px;font-size:12.5px;color:#777;}
-  .muted{color:#777;font-size:12.5px;margin-top:8px;}
+:root{
+  --bg:#d5dade; --bg-2:#cdd2d7; --panel:#eef0f2; --panel-2:#e3e7ea; --well:#f7f8f9; --ink:#1a1f25; --mute:#4c5560; --dim:#6f7884; --line:#bcc3ca; --line-2:#d3d8dd;
+  --brass:#8a6514; --brass-hi:#c9a24a; --brass-lo:#6e500f; --brass-ink:#1c1406; --brass-soft:#f1e7cf; --steel:#5d6772;
+  --good:#1d7a4e; --good-bg:#e0f1e8; --warn:#9b5a0c; --warn-bg:#f8ecd9; --bad:#b0262c; --bad-bg:#f8e3e3;
+  --bevel:inset 0 1px 0 rgba(255,255,255,.85),inset 0 -1px 0 rgba(0,0,0,.08),0 1px 0 rgba(0,0,0,.06),0 8px 22px -14px rgba(20,26,32,.45);
+  --inset:inset 0 2px 4px rgba(0,0,0,.12),inset 0 -1px 0 rgba(255,255,255,.7);
+  --r:10px;
+  --f:"Helvetica Neue","Segoe UI",Roboto,system-ui,-apple-system,Arial,sans-serif;
+  --m:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){
+  --bg:#0c0e11; --bg-2:#101317; --panel:#171a1f; --panel-2:#1d2127; --well:#111418; --ink:#e7e9ec; --mute:#a7afb9; --dim:#78818c; --line:#2c323a; --line-2:#23282f;
+  --brass:#d9b25c; --brass-hi:#e6c477; --brass-lo:#a8873d; --brass-ink:#1a1305; --brass-soft:#2a2414; --steel:#8e99a5;
+  --good:#46c08a; --good-bg:#10291e; --warn:#eaa651; --warn-bg:#2e2010; --bad:#f2777c; --bad-bg:#321618;
+  --bevel:inset 0 1px 0 rgba(255,255,255,.06),inset 0 -1px 0 rgba(0,0,0,.4),0 1px 0 rgba(0,0,0,.5),0 10px 26px -14px rgba(0,0,0,.8);
+  --inset:inset 0 2px 5px rgba(0,0,0,.55),inset 0 -1px 0 rgba(255,255,255,.04);}}
+:root[data-theme=dark]{
+  --bg:#0c0e11; --bg-2:#101317; --panel:#171a1f; --panel-2:#1d2127; --well:#111418; --ink:#e7e9ec; --mute:#a7afb9; --dim:#78818c; --line:#2c323a; --line-2:#23282f;
+  --brass:#d9b25c; --brass-hi:#e6c477; --brass-lo:#a8873d; --brass-ink:#1a1305; --brass-soft:#2a2414; --steel:#8e99a5;
+  --good:#46c08a; --good-bg:#10291e; --warn:#eaa651; --warn-bg:#2e2010; --bad:#f2777c; --bad-bg:#321618;
+  --bevel:inset 0 1px 0 rgba(255,255,255,.06),inset 0 -1px 0 rgba(0,0,0,.4),0 1px 0 rgba(0,0,0,.5),0 10px 26px -14px rgba(0,0,0,.8);
+  --inset:inset 0 2px 5px rgba(0,0,0,.55),inset 0 -1px 0 rgba(255,255,255,.04);}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font:15px/1.5 var(--f);color:var(--ink);-webkit-font-smoothing:antialiased;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px),linear-gradient(180deg,var(--bg),var(--bg-2))}
+a{color:inherit}
+.wrap{max-width:1140px;margin:0 auto;padding:0 16px}
+@media(min-width:760px){.wrap{padding:0 28px}}
+.sc{font-variant:small-caps;letter-spacing:.09em;text-transform:lowercase;font-weight:700}
+/* brand bar: gunmetal strip with rivets */
+.bar{position:sticky;top:0;z-index:10;background:linear-gradient(180deg,#3a424b,#262c33);color:#e9ecef;border-bottom:2px solid #c9a24a;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+.bar .wrap{display:flex;align-items:center;gap:12px;height:56px;position:relative}
+.rv{width:7px;height:7px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#e8edf1,#7e8893 60%,#4a525b);flex:none;box-shadow:0 1px 1px rgba(0,0,0,.5)}
+.logo{width:32px;height:32px;flex:none;display:grid;place-items:center}
+.bar b{font-weight:800;letter-spacing:.02em;white-space:nowrap;font-size:16px}
+.pill{font:700 11.5px var(--f);letter-spacing:.06em;text-transform:uppercase;color:#e6c477;border:1px solid rgba(201,162,74,.45);border-radius:4px;padding:4px 8px;white-space:nowrap}
+.sp{flex:1}
+.bar a{color:#c5ccd3;text-decoration:none;font-weight:700;font-size:13.5px;white-space:nowrap}
+.bar a:hover{color:#fff}
+.tbtn{appearance:none;border:1px solid rgba(255,255,255,.2);background:linear-gradient(180deg,#4a535d,#323940);color:#e9ecef;border-radius:6px;padding:6px 10px;font:700 13px var(--f);cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.15)}
+@media(max-width:680px){.hide-s{display:none}}
+/* hero */
+.hero{display:grid;gap:30px;align-items:center;padding:36px 0 30px}
+@media(min-width:900px){.hero{grid-template-columns:1.2fr 1fr}}
+.eyebrow{font:800 12px var(--f);letter-spacing:.18em;text-transform:uppercase;color:var(--brass)}
+h1{font-size:clamp(30px,4.8vw,50px);line-height:1.04;letter-spacing:-.025em;margin:12px 0 14px;font-weight:850}
+h1 em{font-style:normal;color:var(--brass)}
+.sub{color:var(--mute);font-size:17px;max-width:58ch}
+.facts{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.facts span{font:700 12px var(--f);letter-spacing:.05em;text-transform:uppercase;color:var(--mute);background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:6px 10px;box-shadow:var(--bevel)}
+/* vault door */
+.vault{justify-self:center;position:relative;width:min(380px,86vw);aspect-ratio:1;border-radius:50%;
+  background:radial-gradient(circle at 50% 50%,transparent 61%,rgba(0,0,0,.25) 62%,transparent 63%),
+    repeating-conic-gradient(from 0deg,rgba(255,255,255,.07) 0 2deg,rgba(0,0,0,.05) 2deg 4deg),
+    radial-gradient(circle at 38% 30%,#f4f6f8,#aab3bc 55%,#6d7781);
+  box-shadow:0 0 0 10px #8c96a0,0 0 0 12px #5d6670,0 26px 50px -18px rgba(0,0,0,.6),inset 0 0 0 2px rgba(255,255,255,.5)}
+:root[data-theme=dark] .vault{background:radial-gradient(circle at 50% 50%,transparent 61%,rgba(0,0,0,.45) 62%,transparent 63%),repeating-conic-gradient(from 0deg,rgba(255,255,255,.04) 0 2deg,rgba(0,0,0,.08) 2deg 4deg),radial-gradient(circle at 38% 30%,#5b646e,#2c3239 60%,#171b20);box-shadow:0 0 0 10px #2a3037,0 0 0 12px #171b20,0 26px 50px -18px rgba(0,0,0,.9),inset 0 0 0 2px rgba(255,255,255,.08)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .vault{background:radial-gradient(circle at 50% 50%,transparent 61%,rgba(0,0,0,.45) 62%,transparent 63%),repeating-conic-gradient(from 0deg,rgba(255,255,255,.04) 0 2deg,rgba(0,0,0,.08) 2deg 4deg),radial-gradient(circle at 38% 30%,#5b646e,#2c3239 60%,#171b20);box-shadow:0 0 0 10px #2a3037,0 0 0 12px #171b20,0 26px 50px -18px rgba(0,0,0,.9),inset 0 0 0 2px rgba(255,255,255,.08)}}
+.bolt{position:absolute;width:5.5%;height:5.5%;border-radius:50%;background:radial-gradient(circle at 35% 35%,#f1f4f6,#808a95 60%,#4b535c);box-shadow:0 1px 2px rgba(0,0,0,.5)}
+.wheel{position:absolute;inset:24%;border-radius:50%;transition:transform 1.2s cubic-bezier(.3,.9,.2,1)}
+.wheel i{position:absolute;left:50%;top:-14%;width:7%;height:128%;margin-left:-3.5%;border-radius:8px;background:linear-gradient(90deg,#b88c2c,#e8c878 45%,#a37a22);box-shadow:0 2px 4px rgba(0,0,0,.35)}
+.wheel i:nth-child(2){transform:rotate(60deg)} .wheel i:nth-child(3){transform:rotate(120deg)}
+.wheel b{position:absolute;inset:30%;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f3dc97,#c79a3a 55%,#8a6514);box-shadow:0 3px 8px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.6)}
+.vault.open .wheel{transform:rotate(300deg)}
+.plate{position:absolute;left:50%;bottom:7%;transform:translateX(-50%);width:78%;text-align:center;border-radius:6px;padding:8px 10px 9px;
+  background:linear-gradient(180deg,#f3dfa4,#c9a24a 55%,#a07a24);color:#1c1406;box-shadow:0 4px 10px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.6),inset 0 -1px 0 rgba(0,0,0,.2)}
+.plate .l{font:800 10px var(--f);letter-spacing:.2em;text-transform:uppercase;opacity:.75}
+.plate .v{font:850 clamp(20px,3.4vw,28px)/1.1 var(--f);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.plate .s{font:700 11px var(--m);opacity:.75}
+/* panels */
+.panel{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--bevel);position:relative}
+.panel.riv:before,.panel.riv:after{content:"";position:absolute;top:9px;width:6px;height:6px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#f1f4f6,#8a949e 60%,#5a626b)}
+.panel.riv:before{left:9px}.panel.riv:after{right:9px}
+.phead{display:flex;align-items:baseline;gap:10px;padding:14px 22px 10px;border-bottom:1px solid var(--line-2)}
+.phead h2{font-size:15px;font-weight:800;letter-spacing:.01em}
+.phead .tag{font:700 11px var(--f);letter-spacing:.14em;text-transform:uppercase;color:var(--brass)}
+.phead .why{margin-left:auto;color:var(--dim);font-size:12.5px;text-align:right}
+@media(max-width:640px){.phead{flex-wrap:wrap}.phead .why{margin-left:0;text-align:left;width:100%}}
+.pbody{padding:16px 20px 18px}
+/* deposit slip (input) */
+.slip{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:900px){.slip{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}}
+.drop{position:relative;display:flex;gap:16px;align-items:center;padding:18px;border-radius:8px;background:var(--well);box-shadow:var(--inset);border:1px solid var(--line);cursor:pointer;transition:background .15s,border-color .15s}
+.drop:hover,.drop.over{border-color:var(--brass);background:var(--brass-soft)}
+.drop.loaded{border-color:color-mix(in srgb,var(--good) 55%,var(--line))}
+.drop .slot{flex:none;width:58px;height:42px;border-radius:6px;background:linear-gradient(180deg,#2c333a,#14181c);position:relative;box-shadow:inset 0 2px 4px rgba(0,0,0,.6),0 1px 0 rgba(255,255,255,.6)}
+.drop .slot:after{content:"";position:absolute;left:10px;right:10px;top:50%;height:4px;margin-top:-2px;border-radius:2px;background:#050607;box-shadow:0 1px 0 rgba(255,255,255,.15)}
+.drop h3{font-size:15px;font-weight:800}
+.drop .hint{color:var(--mute);font-size:13px;display:block}
+.drop .cols{font:12px var(--m);color:var(--dim);margin-top:3px}
+.drop .state{font:700 12.5px var(--f);color:var(--good);margin-top:4px}
+.drop .state:empty{display:none}
+.drop input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.drop:focus-within{outline:2px solid var(--brass);outline-offset:2px}
+details.paste{margin-top:10px}
+details.paste summary{cursor:pointer;color:var(--mute);font-size:13px;font-weight:700;list-style:none;display:inline-flex;gap:6px;align-items:center}
+details.paste summary::-webkit-details-marker{display:none}
+details.paste summary:before{content:"▸";color:var(--brass)}
+details.paste[open] summary:before{content:"▾"}
+textarea{width:100%;height:150px;margin-top:8px;font:12px/1.45 var(--m);color:var(--ink);border:1px solid var(--line);border-radius:7px;padding:10px;background:var(--well);box-shadow:var(--inset);resize:vertical}
+.knobs{display:grid;gap:10px;grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:520px){.knobs{grid-template-columns:minmax(0,1fr)}}
+.knob{background:var(--well);border:1px solid var(--line);border-radius:8px;padding:10px 12px;box-shadow:var(--inset)}
+.knob label{display:block;font:800 10.5px var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-bottom:4px;min-height:2.6em}
+.knob .in{display:flex;align-items:baseline;gap:4px}
+.knob .u{font:700 12px var(--f);color:var(--dim)}
+.knob input{width:100%;min-width:0;font:800 20px var(--f);font-variant-numeric:tabular-nums;color:var(--ink);background:transparent;border:0;border-bottom:2px solid var(--brass);padding:2px 0;outline:0;border-radius:0}
+.knob input:focus{border-bottom-color:var(--brass-hi)}
+.knote{color:var(--dim);font-size:12.5px;margin-top:10px}
+.acts{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:16px}
+.btn{appearance:none;border:1px solid var(--line);border-radius:7px;padding:11px 18px;font:800 14px var(--f);letter-spacing:.02em;cursor:pointer;color:var(--ink);
+  background:linear-gradient(180deg,var(--panel),var(--panel-2));box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 1px 2px rgba(0,0,0,.12);transition:transform .08s,filter .15s}
+.btn:hover{filter:brightness(1.04)} .btn:active{transform:translateY(1px)}
+.btn.brass{background:linear-gradient(180deg,#f0d78f,#c9a24a 55%,#a37b22);color:#1c1406;border-color:#8a6514;box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 6px 14px -8px rgba(110,80,15,.8)}
+.btn.steel{background:linear-gradient(180deg,#4b545e,#2d343b);color:#f1f3f5;border-color:#22282e;box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.status{color:var(--dim);font-size:12.5px}
+/* banners */
+.banner{display:none;gap:16px;align-items:center;border-radius:var(--r);padding:16px 20px;margin:26px 0 16px;border:1px solid;box-shadow:var(--bevel)}
+.banner .lamp{flex:none;width:18px;height:18px;border-radius:50%}
+.banner h2{font-size:20px;font-weight:900;letter-spacing:.03em}
+.banner p{color:var(--mute);margin-top:3px;font-size:14px}
+#bannerWrap{background:var(--bad-bg);border-color:color-mix(in srgb,var(--bad) 40%,transparent)}
+#bannerWrap .lamp{background:radial-gradient(circle at 35% 35%,#ff9a9a,var(--bad));box-shadow:0 0 12px var(--bad)}
+#banner{color:var(--bad)}
+#okbanner{background:var(--good-bg);border-color:color-mix(in srgb,var(--good) 35%,transparent)}
+#okbanner .lamp{background:radial-gradient(circle at 35% 35%,#9ff0c6,var(--good));box-shadow:0 0 10px var(--good)}
+#okbanner h2{color:var(--good)}
+/* deposit-box KPI drawers */
+.boxes{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(min-width:900px){.boxes{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.box{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:8px;box-shadow:var(--bevel);padding:12px 14px 14px;min-width:0;position:relative}
+.box .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.box .no{font:800 10.5px var(--m);letter-spacing:.1em;color:var(--brass-ink);background:linear-gradient(180deg,#f0d78f,#c9a24a);padding:2px 7px;border-radius:3px;box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
+.box .key{width:12px;height:18px;position:relative}
+.box .key:before{content:"";position:absolute;left:2px;top:0;width:8px;height:8px;border-radius:50%;background:var(--steel)}
+.box .key:after{content:"";position:absolute;left:4.5px;top:6px;width:3px;height:10px;background:var(--steel);border-radius:0 0 2px 2px}
+.box .n{font:850 clamp(20px,2.6vw,27px)/1.15 var(--f);letter-spacing:-.02em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.box .l{color:var(--mute);font-size:12.5px;margin-top:4px}
+.box.hot .n{color:var(--brass)}
+/* sections */
+.sec{margin-top:18px}
+.grid2{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:920px){.grid2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{font:800 10.5px var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--dim);text-align:right;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--line-2);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:color-mix(in srgb,var(--brass) 7%,transparent)}
+td.name,th.name{text-align:left}
+td.name{font-weight:650;white-space:normal}
+#dormTable td.name{white-space:nowrap}
+@media(max-width:520px){th{white-space:normal;letter-spacing:.06em}td,th{padding:8px 7px}.pbody{padding:14px 12px 16px}#agingTable th:last-child,#agingTable td:last-child{display:none}}
+.abar{height:12px;border-radius:2px;min-width:2px;display:inline-block;vertical-align:middle;background:linear-gradient(180deg,#e2c272,#b48a2c);box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}
+.muted{color:var(--dim);font-size:12.5px;margin-top:10px}
+/* dormant wall of deposit boxes */
+.wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px;padding:14px;background:linear-gradient(180deg,#9aa3ac,#7d8790);border-radius:8px;box-shadow:var(--inset)}
+:root[data-theme=dark] .wall{background:linear-gradient(180deg,#22272d,#181c21)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .wall{background:linear-gradient(180deg,#22272d,#181c21)}}
+.door{position:relative;border-radius:4px;padding:7px 8px 8px;background:linear-gradient(180deg,#eef1f3,#c7cdd3);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),inset 0 -1px 0 rgba(0,0,0,.18),0 1px 2px rgba(0,0,0,.3);color:#1a1f25;min-width:0}
+:root[data-theme=dark] .door{background:linear-gradient(180deg,#3a424b,#272d34);color:#e7e9ec;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 1px 2px rgba(0,0,0,.6)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .door{background:linear-gradient(180deg,#3a424b,#272d34);color:#e7e9ec;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 1px 2px rgba(0,0,0,.6)}}
+.door .id{font:800 9.5px var(--m);letter-spacing:.06em;background:linear-gradient(180deg,#f0d78f,#c9a24a);color:#1c1406;border-radius:2px;padding:1px 4px;display:inline-block}
+.door .b{font:800 13px var(--f);font-variant-numeric:tabular-nums;margin-top:4px}
+.door .d{font:600 10.5px var(--m);opacity:.7}
+.door .kh{position:absolute;right:7px;top:8px;width:6px;height:9px;border-radius:3px 3px 1px 1px;background:#4a525b}
+.door.big{outline:2px solid #c9a24a;outline-offset:-2px}
+.wnote{color:var(--dim);font-size:12.5px;margin:10px 2px 0}
+/* months */
+.mbar{display:inline-flex;gap:2px;align-items:center;width:120px;vertical-align:middle}
+.mbar i{display:block;height:8px;border-radius:1px}
+.mbar i.s{background:#c9a24a} .mbar i.r{background:var(--steel)}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--dim);padding:0 20px 12px}
+.legend s{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+/* refusals + audits */
+ul.refusals{list-style:none;font:12.5px/1.5 var(--m)}
+ul.refusals li{padding:6px 0;border-bottom:1px dashed var(--line);color:var(--mute)}
+ul.refusals li:last-child{border-bottom:0}
+ul.audits{list-style:none;display:flex;flex-wrap:wrap;gap:8px}
+ul.audits li{font:700 12px var(--f);padding:6px 10px;border-radius:5px;background:var(--good-bg);color:var(--good);border:1px solid color-mix(in srgb,var(--good) 30%,transparent)}
+ul.audits li::before{content:"\2713\0020";font-weight:900}
+ul.audits li.fail{background:var(--bad-bg);color:var(--bad);border-color:color-mix(in srgb,var(--bad) 30%,transparent)}
+ul.audits li.fail::before{content:"\2717\0020"}
+#results{display:none}
+.empty{margin-top:26px;text-align:center;padding:40px 18px;color:var(--mute)}
+.empty b{display:block;color:var(--ink);font-size:17px;margin-bottom:4px}
+.empty .lk{width:34px;height:40px;margin:0 auto 12px;position:relative}
+.empty .lk:before{content:"";position:absolute;left:5px;top:0;width:24px;height:22px;border:5px solid var(--steel);border-bottom:0;border-radius:14px 14px 0 0}
+.empty .lk:after{content:"";position:absolute;left:0;bottom:0;width:34px;height:22px;border-radius:4px;background:linear-gradient(180deg,#f0d78f,#c9a24a)}
+.err{display:none;margin-top:12px;padding:10px 14px;border-radius:7px;background:var(--warn-bg);color:var(--warn);font-weight:700;font-size:13.5px;border:1px solid color-mix(in srgb,var(--warn) 30%,transparent)}
+footer{color:var(--dim);font-size:13px;padding:30px 0 52px;margin-top:40px;border-top:1px solid var(--line);display:grid;gap:6px}
+footer a{color:var(--mute)}
+.fade{animation:fade .35s ease both}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media print{.bar,.slipwrap,.vault,footer a,.facts{display:none!important} body{background:#fff;color:#000} .panel,.box{box-shadow:none} .hero{padding:0 0 10px}.sub{color:#333}}
 </style>
 </head>
 <body>
-<header>
-  <h1>The Gift Card Ledger</h1>
-  <p>Paste the one file your gift card program already exports &mdash; every issue, reload and
-     redemption &mdash; and it tells you what you still owe: the outstanding balance, how old each
-     open card is, which ones have gone quiet, and how much of your holiday card money actually
-     comes back. Everything is computed from the file; the page has no clock and sends nothing anywhere.</p>
-</header>
-<main>
-  <div class="card">
-    <h2>1 &mdash; Gift card activity (giftcards.csv)</h2>
-    <textarea id="box" spellcheck="false" placeholder="date,card_id,event,amount&#10;2026-11-02,HH-612,issue,100.00&#10;2026-11-09,HH-612,redeem,40.00"></textarea>
-    <div class="row"><input type="file" id="file" accept=".csv,text/csv"><button class="ghost" id="loadSample">Load the sample spa</button></div>
-  </div>
+<header class="bar"><div class="wrap">
+  <span class="rv hide-s" aria-hidden="true"></span>
+  <span class="logo" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 64 64"><circle cx="32" cy="32" r="22" fill="none" stroke="#d4ac55" stroke-width="5"/><circle cx="32" cy="32" r="6" fill="#d4ac55"/><path d="M32 10v10M32 44v10M10 32h10M44 32h10" stroke="#d4ac55" stroke-width="5" stroke-linecap="round"/></svg></span>
+  <b>The Gift Card Ledger</b><span class="pill hide-s">runs offline · files stay on your computer</span>
+  <span class="sp"></span>
+  <a class="hide-s" href="https://jonathangeorgegatz.github.io/tools/" target="_blank" rel="noopener">More free tools</a>
+  <button class="tbtn" id="theme" aria-label="Toggle dark mode">◐</button>
+  <span class="rv hide-s" aria-hidden="true"></span>
+</div></header>
 
-  <div class="card" style="margin-top:16px;">
-    <h2>2 &mdash; The dials (judgments, not facts &mdash; the page treats them that way)</h2>
-    <div class="dials">
-      <div class="dial"><label for="dDorm">Dormant after (months of 30 days)</label><input id="dDorm" type="number" value="12" min="1" max="48" step="1"></div>
-      <div class="dial"><label for="dWave">Holiday wave window (days)</label><input id="dWave" type="number" value="60" min="14" max="365" step="1"></div>
-      <div class="dial"><label for="dCrumb">Crumb line (dollars)</label><input id="dCrumb" type="number" value="1.00" min="0" max="25" step="0.25"></div>
+<main class="wrap">
+  <section class="hero">
+    <div>
+      <div class="eyebrow">Build It With AI · Episode 35 · free tool</div>
+      <h1>Every gift card you sold is money <em>you still owe.</em></h1>
+      <p class="sub">Drop in the one file your gift card program already exports — every issue, reload and redemption — and the vault opens: what's still outstanding, how old it is, which cards have gone quiet, and how much holiday card money actually comes back. The page has no clock and sends nothing anywhere.</p>
+      <div class="facts"><span>integer cents</span><span>aged from last visit</span><span>refuses bad rows aloud</span></div>
     </div>
-    <div class="row"><button id="runBtn">Open the ledger</button><span class="muted" id="status"></span></div>
+    <div class="vault" id="vault" aria-label="Vault summary">
+      <span class="bolt" style="left:47.25%;top:3%"></span><span class="bolt" style="left:80%;top:15%"></span><span class="bolt" style="left:91.5%;top:47.25%"></span><span class="bolt" style="left:80%;top:79.5%"></span>
+      <span class="bolt" style="left:14.5%;top:79.5%"></span><span class="bolt" style="left:3%;top:47.25%"></span><span class="bolt" style="left:14.5%;top:15%"></span>
+      <div class="wheel" aria-hidden="true"><i></i><i></i><i></i><b></b></div>
+      <div class="plate"><div class="l" id="vLbl">Vault locked</div><div class="v" id="vVal">$ —</div><div class="s" id="vSub">load the sample to open it</div></div>
+    </div>
+  </section>
+
+  <div class="slip slipwrap">
+    <div class="panel riv">
+      <div class="phead"><span class="tag">Deposit slip</span><h2>Gift card activity (giftcards.csv)</h2></div>
+      <div class="pbody">
+        <label class="drop" id="drop">
+          <input type="file" id="file" accept=".csv,text/csv" aria-label="Choose your gift card CSV">
+          <span class="slot" aria-hidden="true"></span>
+          <span><h3>Drop the export in the slot</h3><span class="hint">or click to choose a file</span>
+          <div class="cols">date, card_id, event, amount</div><div class="state" id="state"></div></span>
+        </label>
+        <details class="paste" id="pasteBox"><summary>or paste it</summary>
+          <textarea id="box" spellcheck="false" placeholder="date,card_id,event,amount&#10;2026-11-02,HH-612,issue,100.00&#10;2026-11-09,HH-612,redeem,40.00"></textarea>
+        </details>
+        <div class="acts">
+          <button class="btn brass" id="loadSample">Try the sample business</button>
+          <button class="btn steel" id="runBtn">Open the ledger</button>
+          <span class="status" id="status"></span>
+        </div>
+        <div class="err" id="err" role="alert"></div>
+      </div>
+    </div>
+    <div class="panel riv">
+      <div class="phead"><span class="tag">The combination</span><h2>Your dials</h2></div>
+      <div class="pbody">
+        <div class="knobs">
+          <div class="knob"><label for="dDorm">Dormant after</label><div class="in"><input id="dDorm" type="number" value="12" min="1" max="48" step="1"><span class="u">months</span></div></div>
+          <div class="knob"><label for="dWave">Holiday wave window</label><div class="in"><input id="dWave" type="number" value="60" min="14" max="365" step="1"><span class="u">days</span></div></div>
+          <div class="knob"><label for="dCrumb">Crumb line</label><div class="in"><span class="u">$</span><input id="dCrumb" type="number" value="1.00" min="0" max="25" step="0.25"></div></div>
+        </div>
+        <p class="knote">Judgments, not facts — the page treats them that way. A month here is 30 days.</p>
+        <div class="acts">
+          <button class="btn" id="csvBtn" disabled>Download findings (CSV)</button>
+          <button class="btn" id="printBtn" disabled>Print / PDF</button>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div id="banner">DO NOT BOOK THIS NUMBER</div>
-  <div id="bannerWhy" class="muted" style="display:none;"></div>
+  <div class="panel empty fade" id="empty"><div class="lk" aria-hidden="true"></div><b>The vault is locked</b>Drop in your export, or press “Try the sample business” to open a full ledger on a made-up spa.</div>
+
+  <div class="banner" id="bannerWrap" role="alert"><span class="lamp" aria-hidden="true"></span><div><h2 id="banner">DO NOT BOOK THIS NUMBER</h2><p id="bannerWhy" style="display:none;"></p></div></div>
+  <div class="banner" id="okbanner"><span class="lamp" aria-hidden="true"></span><div><h2>The ledger opens clean</h2><p id="okwhy"></p></div></div>
 
   <div id="results">
-    <div class="tiles">
-      <div class="tile"><div class="n" id="tLiab">&ndash;</div><div class="l" id="tLiabL">outstanding on open cards</div></div>
-      <div class="tile"><div class="n" id="tDorm">&ndash;</div><div class="l" id="tDormL">dormant cards / value</div></div>
-      <div class="tile"><div class="n" id="tOld">&ndash;</div><div class="l" id="tOldL">quietest open card</div></div>
-      <div class="tile"><div class="n" id="tDec">&ndash;</div><div class="l">of all card value ever sold was sold in a December</div></div>
+    <div class="boxes fade">
+      <div class="box hot"><div class="top"><span class="no">BOX 01</span><span class="key" aria-hidden="true"></span></div><div class="n" id="tLiab">&ndash;</div><div class="l" id="tLiabL">outstanding on open cards</div></div>
+      <div class="box"><div class="top"><span class="no">BOX 02</span><span class="key" aria-hidden="true"></span></div><div class="n" id="tDorm">&ndash;</div><div class="l" id="tDormL">dormant cards / value</div></div>
+      <div class="box"><div class="top"><span class="no">BOX 03</span><span class="key" aria-hidden="true"></span></div><div class="n" id="tOld">&ndash;</div><div class="l" id="tOldL">quietest open card</div></div>
+      <div class="box"><div class="top"><span class="no">BOX 04</span><span class="key" aria-hidden="true"></span></div><div class="n" id="tDec">&ndash;</div><div class="l">of all card value ever sold was sold in a December</div></div>
     </div>
 
-    <div class="grid2 section">
-      <div class="card">
-        <h2>How old the money you owe is</h2>
-        <table id="agingTable" class="bars"><thead><tr><th class="name">Since the card's last visit</th><th>Cards</th><th>Balance</th><th class="name" style="width:40%"></th></tr></thead><tbody></tbody></table>
-        <p class="muted" id="crumbNote"></p>
-      </div>
-      <div class="card">
-        <h2>The holiday wave</h2>
-        <table id="waveTable"><tbody></tbody></table>
-        <p class="muted" id="waveNote"></p>
+    <div class="panel riv sec fade">
+      <div class="phead"><span class="tag">The wall</span><h2>Dormant cards — balances nobody has touched</h2><span class="why" id="wallWhy"></span></div>
+      <div class="pbody">
+        <div class="wall" id="wall"></div>
+        <p class="wnote">Each door is one dormant card, largest balance first. Crumb-line cards are counted in Box 02, not shown.</p>
+        <div class="tbl" style="margin-top:14px"><table id="dormTable"><thead><tr><th class="name">Card</th><th>Balance</th><th>Days since last visit</th></tr></thead><tbody></tbody></table></div>
+        <p class="muted" id="dormNote"></p>
       </div>
     </div>
 
-    <div class="card section">
-      <h2>Dormant cards &mdash; balances nobody has touched</h2>
-      <table id="dormTable"><thead><tr><th class="name">Card</th><th>Balance</th><th>Days since last visit</th></tr></thead><tbody></tbody></table>
-      <p class="muted" id="dormNote"></p>
+    <div class="grid2 sec">
+      <div class="panel riv fade">
+        <div class="phead"><span class="tag">Aging</span><h2>How old the money you owe is</h2></div>
+        <div class="pbody tbl">
+          <table id="agingTable" class="bars"><thead><tr><th class="name">Since the card's last visit</th><th>Cards</th><th>Balance</th><th class="name" style="width:34%"></th></tr></thead><tbody></tbody></table>
+          <p class="muted" id="crumbNote"></p>
+        </div>
+      </div>
+      <div class="panel riv fade">
+        <div class="phead"><span class="tag">Holiday</span><h2>The holiday wave</h2></div>
+        <div class="pbody tbl">
+          <table id="waveTable"><tbody></tbody></table>
+          <p class="muted" id="waveNote"></p>
+        </div>
+      </div>
     </div>
 
-    <div class="card section">
-      <h2>Sold vs redeemed, last thirteen months</h2>
-      <table id="monthTable"><thead><tr><th class="name">Month</th><th>Sold</th><th>Redeemed</th></tr></thead><tbody></tbody></table>
+    <div class="panel riv sec fade">
+      <div class="phead"><span class="tag">Flow</span><h2>Sold vs redeemed, last thirteen months</h2></div>
+      <div class="legend"><span><s style="background:#c9a24a"></s>sold</span><span><s style="background:var(--steel)"></s>redeemed</span></div>
+      <div class="pbody tbl" style="padding-top:0"><table id="monthTable"><thead><tr><th class="name">Month</th><th>Sold</th><th>Redeemed</th><th class="name"></th></tr></thead><tbody></tbody></table></div>
     </div>
 
-    <div class="grid2 section">
-      <div class="card"><h2>Rows refused and cards flagged, aloud</h2><ul class="refusals" id="refList"></ul><p class="muted" id="refShares"></p></div>
-      <div class="card"><h2>The page cross-examines itself</h2><ul class="audits" id="auditList"></ul></div>
+    <div class="grid2 sec">
+      <div class="panel riv fade"><div class="phead"><span class="tag">Refused</span><h2>Rows refused and cards flagged, aloud</h2></div><div class="pbody"><ul class="refusals" id="refList"></ul><p class="muted" id="refShares"></p></div></div>
+      <div class="panel riv fade"><div class="phead"><span class="tag">Self-audit</span><h2>The page cross-examines itself</h2></div><div class="pbody"><ul class="audits" id="auditList"></ul></div></div>
     </div>
   </div>
-</main>
-<footer>
-  Hollyhock Day Spa is a fictional sample business; every card in it is invented.
-  The Gift Card Ledger &mdash; from the Build It With AI series. The page runs entirely in your browser.
-</footer>
 
+  <div id="refusedOnly" style="display:none" class="panel riv sec fade"><div class="phead"><span class="tag">Refused</span><h2>What the page refused to read</h2></div><div class="pbody"><ul class="refusals" id="refList2"></ul></div></div>
+
+  <footer>
+    <div>The page prices what you owe; it does not tell you how to book it — revenue recognition, breakage and whether an old balance eventually belongs to your state are questions for your accountant. A quiet card is not a gone customer.</div>
+    <div>Hollyhock Day Spa is a fictional sample business; every card in it is invented. Not legal or accounting advice.</div>
+    <div>The Gift Card Ledger — made on <a href="https://www.youtube.com/@jonathangatz" target="_blank" rel="noopener">Build It With AI</a> · <a href="https://jonathangeorgegatz.github.io/tools/" target="_blank" rel="noopener">all the free tools</a></div>
+  </footer>
+</main>
 <script>// The Gift Card Ledger — engine v1.0 (EP35). Integer cents / integer days throughout.
 // Spec: RULES.md. Exposed as GCL.run(text, dials).
 (function (root) {
@@ -339,23 +548,42 @@ const SAMPLE = "date,card_id,event,amount\n2024-06-03,HH-101,issue,50.00\n2024-0
 const $ = id => document.getElementById(id);
 const C = c => (c<0?"-$":"$") + Math.abs(c/100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,",");
 const MN = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-$("loadSample").onclick = () => { $("box").value = SAMPLE; $("status").textContent = "Sample spa loaded — two and a half fictional years of cards."; };
-$("file").addEventListener("change", e => {
-  const f = e.target.files[0]; if(!f) return;
-  const rd = new FileReader(); rd.onload = () => { $("box").value = rd.result; }; rd.readAsText(f);
-});
-
-$("runBtn").onclick = () => {
-  const dials = { dormantMonths:+$("dDorm").value, waveDays:+$("dWave").value, crumbDollars:+$("dCrumb").value };
-  const r = GCL.run($("box").value, dials);
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const edToISO = ed => new Date(ed*864e5).toISOString().slice(0,10);
+function loaded(name,text){
+  $("state").textContent = "✓ "+name+" · "+Math.max(0,text.trim().split(/\r?\n/).length-1)+" rows";
+  $("drop").classList.add("loaded");
+}
+function jump(){ if(window.innerWidth<900){ const o=$("bannerWrap").style.display==="flex"?$("bannerWrap"):$("okbanner"); if(o&&o.scrollIntoView) o.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"}); } }
+function readDials(){ return { dormantMonths:+$("dDorm").value, waveDays:+$("dWave").value, crumbDollars:+$("dCrumb").value }; }
+function runNow(){
+  const txt=$("box").value;
+  if(!txt.trim()){ $("err").textContent="Nothing to read yet — drop in your giftcards.csv, paste it, or press “Try the sample business”."; $("err").style.display="block"; return false; }
+  $("err").style.display="none";
+  const dials = readDials();
+  const r = GCL.run(txt, dials);
   window.__lastResult = r;
   render(r, dials);
-};
+  return true;
+}
+$("loadSample").onclick = () => { $("box").value = SAMPLE; loaded("hollyhock-giftcards.csv",SAMPLE); $("status").textContent = "Sample spa loaded — two and a half fictional years of cards."; if(runNow()) jump(); $("status").textContent = "Sample spa loaded — two and a half fictional years of cards."; };
+function readFile(f){ const rd = new FileReader(); rd.onload = () => { $("box").value = rd.result; loaded(f.name, rd.result); if(runNow()) jump(); }; rd.readAsText(f); }
+$("file").addEventListener("change", e => { const f = e.target.files[0]; if(f) readFile(f); });
+["dragenter","dragover"].forEach(ev=>$("drop").addEventListener(ev,e=>{e.preventDefault();$("drop").classList.add("over")}));
+["dragleave","drop"].forEach(ev=>$("drop").addEventListener(ev,e=>{e.preventDefault();$("drop").classList.remove("over")}));
+$("drop").addEventListener("drop",e=>{const f=e.dataTransfer&&e.dataTransfer.files[0]; if(f) readFile(f);});
+$("runBtn").onclick = () => { if(runNow()) jump(); };
+["dDorm","dWave","dCrumb"].forEach(id=>$(id).addEventListener("change",()=>{ if(window.__lastResult && $("box").value.trim()) runNow(); }));
+
+function vault(open,lbl,val,sub){ $("vault").classList.toggle("open",open); $("vLbl").textContent=lbl; $("vVal").textContent=val; $("vSub").textContent=sub; }
 function render(r, dials){
-  const banner=$("banner"), why=$("bannerWhy"), res=$("results");
+  const why=$("bannerWhy"), res=$("results");
   $("status").textContent = "";
+  $("empty").style.display="none";
+  $("csvBtn").disabled=$("printBtn").disabled=false;
+  const refs=[...r.refusals.map(x=>"row "+x.row+" — "+x.reason), ...r.flags.map(f=>"card "+f.card+" — "+f.reason+" (excluded from every total)")];
   if (r.untrusted){
-    banner.style.display="block"; res.style.display="none";
+    $("bannerWrap").style.display="flex"; $("okbanner").style.display="none"; res.style.display="none";
     const bits=[];
     if (r.shares.rows>10) bits.push("the file lost "+r.shares.rows+"% of its rows to refusals");
     if (r.shares.cards>10) bits.push(r.shares.cards+"% of cards carry impossible histories");
@@ -363,9 +591,15 @@ function render(r, dials){
     if (failed.length && r.shares.rows<=10 && r.shares.cards<=10) bits.push("failed self-audit: "+failed.join("; "));
     why.textContent = "Why: " + (bits.join(" · ")||"internal audit failure") + ". Fix the file and run again — a liability built on refused rows is not a liability figure.";
     why.style.display="block";
+    $("refList2").innerHTML = refs.map(x=>"<li>"+esc(x)+"</li>").join("") || "<li>Nothing refused.</li>";
+    $("refusedOnly").style.display="block";
+    vault(false,"Vault stays shut","withheld","the file can't be trusted");
     return;
   }
-  banner.style.display="none"; why.style.display="none"; res.style.display="block";
+  $("bannerWrap").style.display="none"; why.style.display="none"; res.style.display="block"; $("refusedOnly").style.display="none";
+  $("okbanner").style.display="flex";
+  $("okwhy").textContent = "Every self-audit passed. "+C(r.totals.liabilityCents)+" outstanding on "+r.totals.openCards+" open cards, as of the file's last entry ("+edToISO(r.nowEd)+").";
+  vault(true,"Outstanding · you owe",C(r.totals.liabilityCents),r.totals.openCards+" open cards · "+r.totals.dormantCards+" dormant");
   $("tLiab").textContent = C(r.totals.liabilityCents);
   $("tLiabL").textContent = "outstanding on "+r.totals.openCards+" open cards";
   $("tDorm").textContent = r.totals.dormantCards + " / " + C(r.totals.dormantCents);
@@ -378,7 +612,7 @@ function render(r, dials){
   const LBL=["0–90 days","91–180 days","181–360 days","361–720 days","over 720 days"];
   const maxA=Math.max(1,...r.aging.map(a=>a.cents));
   $("agingTable").querySelector("tbody").innerHTML = r.aging.map((a,i)=>
-    "<tr><td class=\"name\">"+LBL[i]+"</td><td>"+a.cards+"</td><td>"+C(a.cents)+"</td><td class=\"name\"><span class=\"bar\" style=\"width:"+Math.round(100*a.cents/maxA)+"%\"></span></td></tr>").join("");
+    "<tr><td class=\"name\">"+LBL[i]+"</td><td>"+a.cards+"</td><td>"+C(a.cents)+"</td><td class=\"name\"><span class=\"abar\" style=\"width:"+Math.round(100*a.cents/maxA)+"%\"></span></td></tr>").join("");
   $("crumbNote").textContent = "Inside the total: "+r.totals.crumbCards+" crumb card"+(r.totals.crumbCards===1?"":"s")+" at or under "+C(Math.round(dials.crumbDollars*100))+", holding "+C(r.totals.crumbCents)+" between them.";
 
   $("waveTable").querySelector("tbody").innerHTML =
@@ -390,22 +624,41 @@ function render(r, dials){
 
   const SHOW=12;
   const dl=r.dormList;
+  const maxD=Math.max(1,...dl.map(d=>d.bal));
+  $("wall").innerHTML = dl.map(d=>"<div class=\"door"+(d.bal===maxD?" big":"")+"\" title=\""+esc(d.card)+": "+C(d.bal)+", "+d.ageDays+" days quiet\"><span class=\"kh\" aria-hidden=\"true\"></span><span class=\"id\">"+esc(d.card)+"</span><div class=\"b\">"+C(d.bal)+"</div><div class=\"d\">"+d.ageDays+" d</div></div>").join("")
+    || "<div class=\"door\"><div class=\"b\">Empty</div><div class=\"d\">nothing dormant</div></div>";
+  $("wallWhy").textContent = dl.length+" door"+(dl.length===1?"":"s")+" · quiet "+dials.dormantMonths+"+ months";
   $("dormTable").querySelector("tbody").innerHTML = dl.slice(0,SHOW).map(d=>
     "<tr><td class=\"name\">"+d.card+"</td><td>"+C(d.bal)+"</td><td>"+d.ageDays+"</td></tr>").join("")
     || "<tr><td class=\"name\" colspan=\"3\">Nothing dormant at these dials.</td></tr>";
   $("dormNote").textContent = dl.length>SHOW ? "Showing "+SHOW+" of "+dl.length+" dormant cards (largest balances first); crumb-line cards are counted in the tile, not listed." :
     (dl.length? "All "+dl.length+" dormant cards shown (largest balances first); crumb-line cards are counted in the tile, not listed." : "");
 
+  const maxM=Math.max(1,...r.monthly.map(m=>Math.max(m.issued,m.redeemed)));
   $("monthTable").querySelector("tbody").innerHTML = r.monthly.map(m=>{
     const y=Math.floor(m.ym/100), mo=m.ym%100;
-    return "<tr><td class=\"name\">"+MN[mo-1]+" "+y+"</td><td>"+C(m.issued)+"</td><td>"+C(m.redeemed)+"</td></tr>";
+    return "<tr><td class=\"name\">"+MN[mo-1]+" "+y+"</td><td>"+C(m.issued)+"</td><td>"+C(m.redeemed)+"</td><td class=\"name\"><span class=\"mbar\" aria-hidden=\"true\"><i class=\"s\" style=\"width:"+(m.issued/maxM*58).toFixed(1)+"px\"></i><i class=\"r\" style=\"width:"+(m.redeemed/maxM*58).toFixed(1)+"px\"></i></span></td></tr>";
   }).join("");
 
-  const refs=[...r.refusals.map(x=>"row "+x.row+" — "+x.reason), ...r.flags.map(f=>"card "+f.card+" — "+f.reason+" (excluded from every total)")];
   $("refList").innerHTML = refs.map(x=>"<li>"+x+"</li>").join("") || "<li>Nothing refused — every row read clean.</li>";
   $("refShares").textContent = "Refused: "+r.shares.rows+"% of rows; flagged: "+r.shares.cards+"% of cards (the page stops at 10% of either).";
   $("auditList").innerHTML = r.audits.map(a=>"<li class=\""+(a.pass?"":"fail")+"\">"+a.name+"</li>").join("");
 }
+$("csvBtn").addEventListener("click",()=>{
+  const r=window.__lastResult; if(!r) return;
+  const rows=[["finding","card","detail","amount"]];
+  if(!r.untrusted){
+    rows.push(["outstanding liability","",r.totals.openCards+" open cards",C(r.totals.liabilityCents)]);
+    r.dormList.forEach(d=>rows.push(["dormant card",d.card,d.ageDays+" days since last visit",C(d.bal)]));
+  }
+  r.refusals.forEach(x=>rows.push(["refused row","","row "+x.row+": "+x.reason,""]));
+  r.flags.forEach(f=>rows.push(["flagged card",f.card,f.reason+" (excluded from every total)",""]));
+  const blob=new Blob([rows.map(a=>a.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(",")).join("\n")+"\n"],{type:"text/csv"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="gift-card-findings.csv"; document.body.appendChild(a); a.click(); a.remove();
+});
+$("printBtn").addEventListener("click",()=>window.print());
+$("theme").addEventListener("click",()=>{ const d=document.documentElement;
+  d.dataset.theme=(d.dataset.theme==="dark"||(!d.dataset.theme&&matchMedia("(prefers-color-scheme: dark)").matches))?"light":"dark"; });
 </script>
 </body>
 </html>
